@@ -30,7 +30,7 @@ class MyCallbacks : public BLECharacteristicCallbacks {
 
         if (rxValue.length() > 0) {
             for (int i = 0; i < rxValue.length(); i++)
-                Serial.println(rxValue[i]);
+                Serial.print(rxValue[i]);
         }
     }
 };
