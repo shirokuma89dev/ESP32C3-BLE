@@ -39,7 +39,7 @@ void setup() {
     Serial.begin(115200);
 
     // Create the BLE Device
-    BLEDevice::init("DEV1");
+    BLEDevice::init("XIAOC3 PeripheralA");
 
     // Create the BLE Server
     pServer = BLEDevice::createServer();
