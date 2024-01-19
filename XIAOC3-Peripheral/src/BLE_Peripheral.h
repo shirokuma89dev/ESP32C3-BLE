@@ -13,70 +13,33 @@
 
 class BLE_PERIPHERAL {
    public:
-    // bool deviceConnected = false;
-    // bool oldDeviceConnected = false;
+    BLE_PERIPHERAL();
+    void init();
 
-    bool deviceConnected = false;
-    bool oldDeviceConnected = false;
+    bool deviceConnected;
+    bool oldDeviceConnected;
 
-    BLEServer* pServer = NULL;
-    BLECharacteristic* pCharacteristic = NULL;
+    BLEServer* pServer;
+    BLECharacteristic* pCharacteristic;
+    uint32_t value;
 
-    uint32_t value = 0;
-
+   private:
     class MyServerCallbacks : public BLEServerCallbacks {
-        void onConnect(BLEServer* pServer) {
-            deviceConnected = true;
-        };
+        BLE_PERIPHERAL* peripheral;
 
-        void onDisconnect(BLEServer* pServer) {
-            deviceConnected = false;
-        }
+       public:
+        MyServerCallbacks(BLE_PERIPHERAL* peripheral);
+        void onConnect(BLEServer* pServer);
+        void onDisconnect(BLEServer* pServer);
     };
 
     class MyCallbacks : public BLECharacteristicCallbacks {
-        void onWrite(BLECharacteristic* pCharacteristic) {
-            std::string rxValue = pCharacteristic->getValue();
+        BLE_PERIPHERAL* peripheral;
 
-            if (rxValue.length() > 0) {
-                for (int i = 0; i < rxValue.length(); i++)
-                    Serial.print(rxValue[i]);
-            }
-            Serial.println();
-        }
+       public:
+        MyCallbacks(BLE_PERIPHERAL* peripheral);
+        void onWrite(BLECharacteristic* pCharacteristic);
     };
-
-    void init(void) {
-        // Create the BLE Device
-        BLEDevice::init("XIAOC3 PeripheralA");
-
-        // Create the BLE Server
-        pServer = BLEDevice::createServer();
-        pServer->setCallbacks(new MyServerCallbacks());
-
-        // Create the BLE Service
-        BLEService* pService = pServer->createService(SERVICE_UUID);
-
-        pCharacteristic = pService->createCharacteristic(
-            CHARACTERISTIC_UUID, BLECharacteristic::PROPERTY_READ |
-                                     BLECharacteristic::PROPERTY_WRITE |
-                                     BLECharacteristic::PROPERTY_NOTIFY |
-                                     BLECharacteristic::PROPERTY_INDICATE);
-
-        pCharacteristic->addDescriptor(new BLE2902());
-        pCharacteristic->setCallbacks(new MyCallbacks());
-
-        pService->start();
-
-        BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
-        pAdvertising->addServiceUUID(SERVICE_UUID);
-        pAdvertising->setScanResponse(false);
-        pAdvertising->setMinPreferred(0x0);
-        pAdvertising->setScanResponse(true);
-        pAdvertising->setMinPreferred(0x06);
-        pAdvertising->setMinPreferred(0x12);
-        BLEDevice::startAdvertising();
-    };
-} BLE_Peripheral;
+};
 
 #endif

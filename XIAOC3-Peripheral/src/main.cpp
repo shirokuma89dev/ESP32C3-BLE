@@ -2,40 +2,42 @@
 
 #include "./BLE_Peripheral.h"
 
+BLE_PERIPHERAL BLE_Peripheral;
+
 void setup() {
     Serial.begin(115200);
-
+    BLE_Peripheral.init();
 }
 
 void loop() {
-    //decice connected
-    
-    // if (MyServerCallbacks::deviceConnected) {
-    //     if (Serial.available() != 0) {
-    //         int dataSize = 0;
-    //         uint8_t sendDataArr[140] = {0};
-    //         while (Serial.available() != 0) {
-    //             uint8_t data = Serial.read();
-    //             sendDataArr[dataSize] = data;
-    //             dataSize++;
-    //         }
+    // decice connected
 
-    //         pCharacteristic->setValue(sendDataArr, dataSize);
-    //         pCharacteristic->notify();
-    //     }
+    if (BLE_Peripheral.deviceConnected) {
+        if (Serial.available() != 0) {
+            int dataSize = 0;
+            uint8_t sendDataArr[140] = {0};
+            while (Serial.available() != 0) {
+                uint8_t data = Serial.read();
+                sendDataArr[dataSize] = data;
+                dataSize++;
+            }
 
-    //     delay(2);
-    // }
+            BLE_Peripheral.pCharacteristic->setValue(sendDataArr, dataSize);
+            BLE_Peripheral.pCharacteristic->notify();
+        }
 
-    // if (!MyServerCallbacks::deviceConnected && MyServerCallbacks::oldDeviceConnected) {
-    //     delay(100);
-    //     pServer->startAdvertising();
-    //     MyServerCallbacks::oldDeviceConnected = MyServerCallbacks::deviceConnected;
+        delay(2);
+    }
 
-    //     Serial.println("Waiting a client connection to notify...");
-    // }
-    // if (MyServerCallbacks::deviceConnected && !MyServerCallbacks::oldDeviceConnected) {
-    //     Serial.println("Connected");
-    //     MyServerCallbacks::oldDeviceConnected = MyServerCallbacks::deviceConnected;
-    // }
+    if (!BLE_Peripheral.deviceConnected && BLE_Peripheral.oldDeviceConnected) {
+        delay(100);
+        BLE_Peripheral.pServer->startAdvertising();
+        BLE_Peripheral.oldDeviceConnected = BLE_Peripheral.deviceConnected;
+
+        Serial.println("Waiting a client connection to notify...");
+    }
+    if (BLE_Peripheral.deviceConnected && !BLE_Peripheral.oldDeviceConnected) {
+        Serial.println("Connected");
+        BLE_Peripheral.oldDeviceConnected = BLE_Peripheral.deviceConnected;
+    }
 }
