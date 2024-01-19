@@ -2,7 +2,7 @@
 
 #include "./BLE_Peripheral.h"
 
-BLE_PERIPHERAL BLE_Peripheral;
+BLE_PERIPHERAL BLE_Peripheral("XIAOC3 PeripheralA");
 
 void setup() {
     Serial.begin(115200);
@@ -10,34 +10,21 @@ void setup() {
 }
 
 void loop() {
-    // decice connected
-
-    if (BLE_Peripheral.deviceConnected) {
+    if (BLE_Peripheral.checkConnection()) {
         if (Serial.available() != 0) {
             int dataSize = 0;
-            uint8_t sendDataArr[140] = {0};
+            char sendDataArr[140] = {0};
             while (Serial.available() != 0) {
-                uint8_t data = Serial.read();
-                sendDataArr[dataSize] = data;
+                sendDataArr[dataSize] = Serial.read();
                 dataSize++;
             }
 
-            BLE_Peripheral.pCharacteristic->setValue(sendDataArr, dataSize);
-            BLE_Peripheral.pCharacteristic->notify();
+            BLE_Peripheral.write(sendDataArr, dataSize);
         }
 
-        delay(2);
-    }
-
-    if (!BLE_Peripheral.deviceConnected && BLE_Peripheral.oldDeviceConnected) {
-        delay(100);
-        BLE_Peripheral.pServer->startAdvertising();
-        BLE_Peripheral.oldDeviceConnected = BLE_Peripheral.deviceConnected;
-
-        Serial.println("Waiting a client connection to notify...");
-    }
-    if (BLE_Peripheral.deviceConnected && !BLE_Peripheral.oldDeviceConnected) {
-        Serial.println("Connected");
-        BLE_Peripheral.oldDeviceConnected = BLE_Peripheral.deviceConnected;
+        while (BLE_Peripheral.available() != 0) {
+            char data = BLE_Peripheral.read();
+            Serial.write(data);
+        }
     }
 }

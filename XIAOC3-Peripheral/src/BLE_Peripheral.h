@@ -8,22 +8,34 @@
 
 #include <Arduino.h>
 
-#define SERVICE_UUID "fe77e1f2-1e06-11ee-be56-0242ac120002"
-#define CHARACTERISTIC_UUID "060254ca-1e07-11ee-be56-0242ac120002"
-
 class BLE_PERIPHERAL {
    public:
-    BLE_PERIPHERAL();
+    BLE_PERIPHERAL(const char* deviceName);
+
     void init();
+    bool checkConnection();
 
-    bool deviceConnected;
-    bool oldDeviceConnected;
-
-    BLEServer* pServer;
-    BLECharacteristic* pCharacteristic;
-    uint32_t value;
+    int available();
+    char read();
+    void write(char* data, size_t length);
 
    private:
+    // デバイスの接続状態
+    bool _isDeviceConnected;
+    bool _wasDeviceConnected;
+
+    const char* _serviceUuid = "fe77e1f2-1e06-11ee-be56-0242ac120002";
+    const char* _characteristicUuid = "060254ca-1e07-11ee-be56-0242ac120002";
+    const char* _deviceName;
+
+    // BLEサーバー
+    BLEServer* _pServer;
+
+    // BLE特性
+    BLECharacteristic* _pCharacteristic;
+
+    // 受信データ
+    std::string _rxValue;
     class MyServerCallbacks : public BLEServerCallbacks {
         BLE_PERIPHERAL* peripheral;
 

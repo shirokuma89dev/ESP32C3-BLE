@@ -1,31 +1,37 @@
 #include "BLE_Peripheral.h"
 
-BLE_PERIPHERAL::BLE_PERIPHERAL() : deviceConnected(false), oldDeviceConnected(false), pServer(NULL), pCharacteristic(NULL), value(0) {}
+BLE_PERIPHERAL::BLE_PERIPHERAL(const char* deviceName)
+    : _isDeviceConnected(false),
+      _wasDeviceConnected(false),
+      _pServer(NULL),
+      _pCharacteristic(NULL) {
+    _deviceName = deviceName;
+}
 
 void BLE_PERIPHERAL::init() {
     // Create the BLE Device
-    BLEDevice::init("XIAOC3 PeripheralA");
+    BLEDevice::init(_deviceName);
 
     // Create the BLE Server
-    pServer = BLEDevice::createServer();
-    pServer->setCallbacks(new MyServerCallbacks(this));
+    _pServer = BLEDevice::createServer();
+    _pServer->setCallbacks(new MyServerCallbacks(this));
 
     // Create the BLE Service
-    BLEService* pService = pServer->createService(SERVICE_UUID);
+    BLEService* pService = _pServer->createService(_serviceUuid);
 
-    pCharacteristic = pService->createCharacteristic(
-        CHARACTERISTIC_UUID, BLECharacteristic::PROPERTY_READ |
-                             BLECharacteristic::PROPERTY_WRITE |
-                             BLECharacteristic::PROPERTY_NOTIFY |
-                             BLECharacteristic::PROPERTY_INDICATE);
+    _pCharacteristic = pService->createCharacteristic(
+        _characteristicUuid, BLECharacteristic::PROPERTY_READ |
+                                 BLECharacteristic::PROPERTY_WRITE |
+                                 BLECharacteristic::PROPERTY_NOTIFY |
+                                 BLECharacteristic::PROPERTY_INDICATE);
 
-    pCharacteristic->addDescriptor(new BLE2902());
-    pCharacteristic->setCallbacks(new MyCallbacks(this));
+    _pCharacteristic->addDescriptor(new BLE2902());
+    _pCharacteristic->setCallbacks(new MyCallbacks(this));
 
     pService->start();
 
     BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
-    pAdvertising->addServiceUUID(SERVICE_UUID);
+    pAdvertising->addServiceUUID(_serviceUuid);
     pAdvertising->setScanResponse(false);
     pAdvertising->setMinPreferred(0x0);
     pAdvertising->setScanResponse(true);
@@ -34,24 +40,53 @@ void BLE_PERIPHERAL::init() {
     BLEDevice::startAdvertising();
 }
 
-BLE_PERIPHERAL::MyServerCallbacks::MyServerCallbacks(BLE_PERIPHERAL* peripheral) : peripheral(peripheral) {}
+bool BLE_PERIPHERAL::checkConnection() {
+    if (!_isDeviceConnected && _wasDeviceConnected) {
+        // delay(100);
+        _pServer->startAdvertising();
+        _wasDeviceConnected = _isDeviceConnected;
+
+        Serial.println("Waiting a client connection to notify...");
+    }
+    if (_isDeviceConnected && !_wasDeviceConnected) {
+        Serial.println("Connected");
+        _wasDeviceConnected = _isDeviceConnected;
+    }
+
+    return _isDeviceConnected;
+}
+
+int BLE_PERIPHERAL::available() {
+    return _rxValue.length();
+}
+
+char BLE_PERIPHERAL::read() {
+    char data = _rxValue[0];
+    _rxValue = _rxValue.substr(1);
+    return data;
+}
+
+void BLE_PERIPHERAL::write(char* data, size_t length) {
+    _pCharacteristic->setValue((uint8_t*)data, length);
+    _pCharacteristic->notify();
+}
+
+BLE_PERIPHERAL::MyServerCallbacks::MyServerCallbacks(BLE_PERIPHERAL* peripheral)
+    : peripheral(peripheral) {
+}
 
 void BLE_PERIPHERAL::MyServerCallbacks::onConnect(BLEServer* pServer) {
-    peripheral->deviceConnected = true;
+    peripheral->_isDeviceConnected = true;
 }
 
 void BLE_PERIPHERAL::MyServerCallbacks::onDisconnect(BLEServer* pServer) {
-    peripheral->deviceConnected = false;
+    peripheral->_isDeviceConnected = false;
 }
 
-BLE_PERIPHERAL::MyCallbacks::MyCallbacks(BLE_PERIPHERAL* peripheral) : peripheral(peripheral) {}
+BLE_PERIPHERAL::MyCallbacks::MyCallbacks(BLE_PERIPHERAL* peripheral)
+    : peripheral(peripheral) {
+}
 
 void BLE_PERIPHERAL::MyCallbacks::onWrite(BLECharacteristic* pCharacteristic) {
-    std::string rxValue = pCharacteristic->getValue();
-
-    if (rxValue.length() > 0) {
-        for (int i = 0; i < rxValue.length(); i++)
-            Serial.print(rxValue[i]);
-    }
-    Serial.println();
+    peripheral->_rxValue = pCharacteristic->getValue();
 }
