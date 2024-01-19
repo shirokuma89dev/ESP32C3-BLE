@@ -29,9 +29,9 @@ class MyCallbacks : public BLECharacteristicCallbacks {
         std::string rxValue = pCharacteristic->getValue();
 
         if (rxValue.length() > 0) {
-            for (int i = 0; i < rxValue.length(); i++)
-                Serial.print(rxValue[i]);
+            for (int i = 0; i < rxValue.length(); i++) Serial.print(rxValue[i]);
         }
+        Serial.println();
     }
 };
 
@@ -63,8 +63,12 @@ void setup() {
     pAdvertising->addServiceUUID(SERVICE_UUID);
     pAdvertising->setScanResponse(false);
     pAdvertising->setMinPreferred(0x0);
+    // pAdvertising->addServiceUUID(SERVICE_UUID);
+    pAdvertising->setScanResponse(true);
+    pAdvertising->setMinPreferred(
+        0x06);  // functions that help with iPhone connections issue
+    pAdvertising->setMinPreferred(0x12);
     BLEDevice::startAdvertising();
-    Serial.println("Waiting a client connection to notify...");
 }
 
 void loop() {
@@ -83,14 +87,14 @@ void loop() {
         }
 
         delay(2);
-    } else {
-        Serial.println("Waiting a client connection to notify...");
     }
 
     if (!deviceConnected && oldDeviceConnected) {
         delay(100);
         pServer->startAdvertising();
         oldDeviceConnected = deviceConnected;
+
+        Serial.println("Waiting a client connection to notify...");
     }
     if (deviceConnected && !oldDeviceConnected) {
         Serial.println("Connected");
