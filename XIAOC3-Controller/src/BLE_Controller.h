@@ -4,57 +4,56 @@
 #include <Arduino.h>
 #include <BLEDevice.h>
 
-class ClientCallback : public BLEClientCallbacks {
-   public:
-    ClientCallback(bool& isConnected) : isConnected(isConnected) {
-    }
-
-    void onConnect(BLEClient* client) {
-    }
-
-    void onDisconnect(BLEClient* client) {
-        isConnected = false;
-    }
-
-   private:
-    bool& isConnected;
-};
-
-class AdvertisedDeviceCallback : public BLEAdvertisedDeviceCallbacks {
-   public:
-    AdvertisedDeviceCallback(bool& shouldConnect, bool& shouldScan,
-                             BLEUUID& serviceUUID,
-                             BLEAdvertisedDevice*& targetDevice)
-        : shouldConnect(shouldConnect),
-          shouldScan(shouldScan),
-          serviceUUID(serviceUUID),
-          targetDevice(targetDevice) {
-    }
-
-    void onResult(BLEAdvertisedDevice advertisedDevice) {
-        if (advertisedDevice.haveServiceUUID() &&
-            advertisedDevice.isAdvertisingService(serviceUUID)) {
-            BLEDevice::getScan()->stop();
-            targetDevice = new BLEAdvertisedDevice(advertisedDevice);
-            shouldConnect = true;
-            shouldScan = true;
-        }
-    }
-
-   private:
-    bool& shouldConnect;
-    bool& shouldScan;
-    BLEUUID& serviceUUID;
-    BLEAdvertisedDevice*& targetDevice;
-};
-
 class BLE_CONTROLLER {
    private:
     char _serviceUuid[38];
     char _characteristicUuid[38];
 
    public:
-    // UUIDs for BLE service and characteristic
+    class ClientCallback : public BLEClientCallbacks {
+       public:
+        ClientCallback(bool& isConnected) : isConnected(isConnected) {
+        }
+
+        void onConnect(BLEClient* client) {
+        }
+
+        void onDisconnect(BLEClient* client) {
+            isConnected = false;
+        }
+
+       private:
+        bool& isConnected;
+    };
+
+    class AdvertisedDeviceCallback : public BLEAdvertisedDeviceCallbacks {
+       public:
+        AdvertisedDeviceCallback(bool& shouldConnect, bool& shouldScan,
+                                 BLEUUID& serviceUUID,
+                                 BLEAdvertisedDevice*& targetDevice)
+            : shouldConnect(shouldConnect),
+              shouldScan(shouldScan),
+              serviceUUID(serviceUUID),
+              targetDevice(targetDevice) {
+        }
+
+        void onResult(BLEAdvertisedDevice advertisedDevice) {
+            if (advertisedDevice.haveServiceUUID() &&
+                advertisedDevice.isAdvertisingService(serviceUUID)) {
+                BLEDevice::getScan()->stop();
+                targetDevice = new BLEAdvertisedDevice(advertisedDevice);
+                shouldConnect = true;
+                shouldScan = true;
+            }
+        }
+
+       private:
+        bool& shouldConnect;
+        bool& shouldScan;
+        BLEUUID& serviceUUID;
+        BLEAdvertisedDevice*& targetDevice;
+    };
+    
     BLEUUID serviceUUID;
     BLEUUID charUUID;
 
