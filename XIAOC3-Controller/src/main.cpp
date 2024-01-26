@@ -1,93 +1,102 @@
 #include <Arduino.h>
-#include <BLEDevice.h>
+#include "./BLE_Controller.h"
 
+// UUIDs for BLE service and characteristic
 static BLEUUID serviceUUID("fe77e1f2-1e06-11ee-be56-0242ac120002");
 static BLEUUID charUUID("060254ca-1e07-11ee-be56-0242ac120002");
 
-static boolean doConnect = false;
-static boolean connected = false;
-static boolean doScan = false;
-static BLERemoteCharacteristic* pRemoteCharacteristic;
-BLECharacteristic* pCharacteristic = NULL;
-static BLEAdvertisedDevice* myDevice;
+// Flags for BLE connection status
+static boolean shouldConnect = false;
+static boolean isConnected = false;
+static boolean shouldScan = false;
 
-static void notifyCallback(BLERemoteCharacteristic* pBLERemoteCharacteristic,
-                           uint8_t* pData, size_t length, bool isNotify) {
-    Serial.println((char*)pData);
+// Characteristics for BLE communication
+static BLERemoteCharacteristic* remoteCharacteristic;
+BLECharacteristic* localCharacteristic = NULL;
+
+// Device to connect to
+static BLEAdvertisedDevice* targetDevice;
+
+// Callback for receiving notifications from BLE device
+static void onNotificationReceived(BLERemoteCharacteristic* remoteCharacteristic,
+                           uint8_t* data, size_t length, bool isNotify) {
+    Serial.println((char*)data);
 }
 
-class MyClientCallback : public BLEClientCallbacks {
-    void onConnect(BLEClient* pclient) {
+// Callbacks for BLE client
+class ClientCallback : public BLEClientCallbacks {
+    void onConnect(BLEClient* client) {
     }
 
-    void onDisconnect(BLEClient* pclient) {
-        connected = false;
+    void onDisconnect(BLEClient* client) {
+        isConnected = false;
     }
 };
 
+// Function to connect to the BLE server
 bool connectToServer() {
-    BLEClient* pClient = BLEDevice::createClient();
-    pClient->setClientCallbacks(new MyClientCallback());
-    pClient->connect(myDevice);
-    pClient->setMTU(517);
-    BLERemoteService* pRemoteService = pClient->getService(serviceUUID);
-    if (pRemoteService == nullptr) {
-        pClient->disconnect();
-        return false;
-    }
-    pRemoteCharacteristic = pRemoteService->getCharacteristic(charUUID);
-    if (pRemoteCharacteristic == nullptr) {
-        pClient->disconnect();
+    BLEClient* client = BLEDevice::createClient();
+
+    client->setClientCallbacks(new ClientCallback());
+    client->connect(targetDevice);
+    client->setMTU(517);
+
+    BLERemoteService* remoteService = client->getService(serviceUUID);
+    if (remoteService == nullptr) {
+        client->disconnect();
         return false;
     }
 
-    if (pRemoteCharacteristic->canRead()) {
-        std::string value = pRemoteCharacteristic->readValue();
+    remoteCharacteristic = remoteService->getCharacteristic(charUUID);
+    if (remoteCharacteristic == nullptr) {
+        client->disconnect();
+        return false;
     }
 
-    if (pRemoteCharacteristic->canNotify())
-        pRemoteCharacteristic->registerForNotify(notifyCallback);
+    if (remoteCharacteristic->canRead()) {
+        std::string value = remoteCharacteristic->readValue();
+    }
 
-    connected = true;
+    if (remoteCharacteristic->canNotify())
+        remoteCharacteristic->registerForNotify(onNotificationReceived);
+
+    isConnected = true;
     return true;
 }
 
-class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks {
+// Callback for receiving advertised devices
+class AdvertisedDeviceCallback : public BLEAdvertisedDeviceCallbacks {
     void onResult(BLEAdvertisedDevice advertisedDevice) {
         if (advertisedDevice.haveServiceUUID() &&
             advertisedDevice.isAdvertisingService(serviceUUID)) {
             BLEDevice::getScan()->stop();
-            myDevice = new BLEAdvertisedDevice(advertisedDevice);
-            doConnect = true;
-            doScan = true;
+            targetDevice = new BLEAdvertisedDevice(advertisedDevice);
+            shouldConnect = true;
+            shouldScan = true;
         }
     }
 };
 
 void setup() {
     Serial.begin(115200);
+
     BLEDevice::init("STM7_DEVICE2");
 
-    BLEScan* pBLEScan = BLEDevice::getScan();
-    pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
-    pBLEScan->setInterval(1349);
-    pBLEScan->setWindow(449);
-    pBLEScan->setActiveScan(true);
-    pBLEScan->start(5, false);
+    BLEScan* scan = BLEDevice::getScan();
+    scan->setAdvertisedDeviceCallbacks(new AdvertisedDeviceCallback());
+    scan->setInterval(1349);
+    scan->setWindow(449);
+    scan->setActiveScan(true);
+    scan->start(5, false);
 }
 
 void loop() {
-    if (doConnect == true) {
+    if (shouldConnect == true) {
         connectToServer();
-        doConnect = false;
+        shouldConnect = false;
     }
 
-    if (connected) {
-        // if (Serial.available() != 0) {
-        //     char sendData = Serial.read();
-        //     pRemoteCharacteristic->writeValue((uint8_t*)&sendData, 1);
-        //     pRemoteCharacteristic->registerForNotify(notifyCallback);
-        // }
+    if (isConnected) {
         if (Serial.available() != 0) {
             int dataSize = 0;
             uint8_t sendDataArr[140] = {0};
@@ -97,10 +106,10 @@ void loop() {
                 dataSize++;
             }
 
-            pRemoteCharacteristic->writeValue((uint8_t*)&sendDataArr, dataSize);
-            pRemoteCharacteristic->registerForNotify(notifyCallback);
+            remoteCharacteristic->writeValue((uint8_t*)&sendDataArr, dataSize);
+            remoteCharacteristic->registerForNotify(onNotificationReceived);
         }
-    } else if (doScan) {
+    } else if (shouldScan) {
         BLEDevice::getScan()->start(0);
     }
 }
