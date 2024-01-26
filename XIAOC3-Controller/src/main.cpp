@@ -1,9 +1,12 @@
 #include <Arduino.h>
 #include "./BLE_Controller.h"
 
-// UUIDs for BLE service and characteristic
-static BLEUUID serviceUUID("fe77e1f2-1e06-11ee-be56-0242ac120002");
-static BLEUUID charUUID("060254ca-1e07-11ee-be56-0242ac120002");
+class BLE_Service {
+   public:
+    BLE_Service(BLEUUID serviceUUID, BLEUUID charUUID)
+        : serviceUUID(serviceUUID), charUUID(charUUID) {
+        remoteCharacteristic = nullptr;
+    }
 
 // Flags for BLE connection status
 static boolean shouldConnect = false;
