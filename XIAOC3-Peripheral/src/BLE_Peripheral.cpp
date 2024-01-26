@@ -6,6 +6,26 @@ BLE_PERIPHERAL::BLE_PERIPHERAL(const char* deviceName)
       _pServer(NULL),
       _pCharacteristic(NULL) {
     _deviceName = deviceName;
+
+    uuidGenerate(deviceName);
+}
+
+void BLE_PERIPHERAL::uuidGenerate(const char* tag) {
+    // tagから適当にUUIDらしきものを生成する
+    unsigned long uuidTag = 0;
+    for (int i = 0; i < strlen(tag); i++) {
+        uuidTag += tag[i] * i;
+    }
+    uuidTag = uuidTag % 2000;
+
+    sprintf(_serviceUuid, "%08ld-%04ld-%04ld-%04ld-%012ld", uuidTag,
+            uuidTag * 2, uuidTag * 3, uuidTag * 4, uuidTag * 5);
+
+    uuidTag *= 4;
+    uuidTag = uuidTag % 2000;
+
+    sprintf(_characteristicUuid, "%08ld-%04ld-%04ld-%04ld-%012ld", uuidTag,
+            uuidTag * 2, uuidTag * 3, uuidTag * 4, uuidTag * 5);
 }
 
 void BLE_PERIPHERAL::init() {

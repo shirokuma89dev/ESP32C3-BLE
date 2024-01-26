@@ -1,105 +1,16 @@
 #include <Arduino.h>
 #include "./BLE_Controller.h"
 
-class BLE_Service {
-   public:
-    BLE_Service(BLEUUID serviceUUID, BLEUUID charUUID)
-        : serviceUUID(serviceUUID), charUUID(charUUID) {
-        remoteCharacteristic = nullptr;
-    }
-
-// Flags for BLE connection status
-static boolean shouldConnect = false;
-static boolean isConnected = false;
-static boolean shouldScan = false;
-
-// Characteristics for BLE communication
-static BLERemoteCharacteristic* remoteCharacteristic;
-BLECharacteristic* localCharacteristic = NULL;
-
-// Device to connect to
-static BLEAdvertisedDevice* targetDevice;
-
-// Callback for receiving notifications from BLE device
-static void onNotificationReceived(BLERemoteCharacteristic* remoteCharacteristic,
-                           uint8_t* data, size_t length, bool isNotify) {
-    Serial.println((char*)data);
-}
-
-// Callbacks for BLE client
-class ClientCallback : public BLEClientCallbacks {
-    void onConnect(BLEClient* client) {
-    }
-
-    void onDisconnect(BLEClient* client) {
-        isConnected = false;
-    }
-};
-
-// Function to connect to the BLE server
-bool connectToServer() {
-    BLEClient* client = BLEDevice::createClient();
-
-    client->setClientCallbacks(new ClientCallback());
-    client->connect(targetDevice);
-    client->setMTU(517);
-
-    BLERemoteService* remoteService = client->getService(serviceUUID);
-    if (remoteService == nullptr) {
-        client->disconnect();
-        return false;
-    }
-
-    remoteCharacteristic = remoteService->getCharacteristic(charUUID);
-    if (remoteCharacteristic == nullptr) {
-        client->disconnect();
-        return false;
-    }
-
-    if (remoteCharacteristic->canRead()) {
-        std::string value = remoteCharacteristic->readValue();
-    }
-
-    if (remoteCharacteristic->canNotify())
-        remoteCharacteristic->registerForNotify(onNotificationReceived);
-
-    isConnected = true;
-    return true;
-}
-
-// Callback for receiving advertised devices
-class AdvertisedDeviceCallback : public BLEAdvertisedDeviceCallbacks {
-    void onResult(BLEAdvertisedDevice advertisedDevice) {
-        if (advertisedDevice.haveServiceUUID() &&
-            advertisedDevice.isAdvertisingService(serviceUUID)) {
-            BLEDevice::getScan()->stop();
-            targetDevice = new BLEAdvertisedDevice(advertisedDevice);
-            shouldConnect = true;
-            shouldScan = true;
-        }
-    }
-};
+BLE_CONTROLLER BLE_controller("XIAOC3 Controller", "XIAOC3 PeripheralB");
 
 void setup() {
     Serial.begin(115200);
 
-    BLEDevice::init("STM7_DEVICE2");
-
-    BLEScan* scan = BLEDevice::getScan();
-    scan->setAdvertisedDeviceCallbacks(new AdvertisedDeviceCallback());
-    scan->setInterval(1349);
-    scan->setWindow(449);
-    scan->setActiveScan(true);
-    scan->start(5, false);
+    BLE_controller.init();
 }
 
 void loop() {
-    if (shouldConnect == true) {
-        connectToServer();
-        shouldConnect = false;
-    }
-
-    if (isConnected) {
+    if (BLE_controller.checkConnection()) {
         if (Serial.available() != 0) {
             int dataSize = 0;
             uint8_t sendDataArr[140] = {0};
@@ -109,10 +20,7 @@ void loop() {
                 dataSize++;
             }
 
-            remoteCharacteristic->writeValue((uint8_t*)&sendDataArr, dataSize);
-            remoteCharacteristic->registerForNotify(onNotificationReceived);
+            BLE_controller.write(sendDataArr, dataSize);
         }
-    } else if (shouldScan) {
-        BLEDevice::getScan()->start(0);
     }
 }

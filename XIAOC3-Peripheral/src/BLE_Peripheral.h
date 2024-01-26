@@ -20,14 +20,16 @@ class BLE_PERIPHERAL {
     char read();
     void write(char* data, size_t length);
 
+    void uuidGenerate(const char* tag);
+
    private:
     // デバイスの接続状態
     bool _isDeviceConnected;
     bool _wasDeviceConnected;
     bool _isDebugMode;
 
-    const char* _serviceUuid = "fe77e1f2-1e06-11ee-be56-0242ac120002";
-    const char* _characteristicUuid = "060254ca-1e07-11ee-be56-0242ac120002";
+    char _serviceUuid[38];
+    char _characteristicUuid[38];
     const char* _deviceName;
 
     // BLEサーバー

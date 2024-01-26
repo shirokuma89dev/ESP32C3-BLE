@@ -2,7 +2,9 @@
 
 #include "./BLE_Peripheral.h"
 
-BLE_PERIPHERAL BLE_Peripheral("XIAOC3 PeripheralA");
+BLE_PERIPHERAL BLE_Peripheral("XIAOC3 PeripheralB");
+
+// const int hash = "XIAOC3 PeripheralA";
 
 void setup() {
     delay(1000);
