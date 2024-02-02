@@ -2,14 +2,14 @@
 
 #include "./BLE_Peripheral.h"
 
-BLE_PERIPHERAL BLE_Peripheral("XIAOC3 PeripheralB");
+BLE_PERIPHERAL BLE_Peripheral("BLE_Kit-A");
 
 // const int hash = "XIAOC3 PeripheralA";
 
 void setup() {
     delay(1000);
 
-    Serial.begin(115200);
+    Serial0.begin(115200);
     BLE_Peripheral.enableDebugMode();
     BLE_Peripheral.init();
 }

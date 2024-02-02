@@ -1,102 +1,132 @@
-// #include "BLE_Controller.h"
+#include "BLE_Controller.h"
 
-// ClientCallback::ClientCallback(bool& isConnected) : isConnected(isConnected) {
-// }
+BLE_Controller::BLE_Controller(const char* deviceName,
+                               const char* peripheralName) {
+    this->_deviceName = deviceName;
+    this->_peripheralName = peripheralName;
 
-// void ClientCallback::onConnect(BLEClient* client) {
-// }
+    uuidGenerate(peripheralName);
+}
 
-// void ClientCallback::onDisconnect(BLEClient* client) {
-//     isConnected = false;
-// }
+void BLE_Controller::uuidGenerate(const char* tag) {
+    char serviceUUID[38];
+    char characteristicUUID[38];
+    
+    unsigned long uuidTag = 0;
+    for (int i = 0; i < strlen(tag); i++) {
+        uuidTag += tag[i] * i;
+    }
+    uuidTag = uuidTag % 2000;
 
-// AdvertisedDeviceCallback::AdvertisedDeviceCallback(bool& shouldConnect, bool& shouldScan,
-//                              BLEUUID& serviceUUID,
-//                              BLEAdvertisedDevice*& targetDevice)
-//         : shouldConnect(shouldConnect),
-//           shouldScan(shouldScan),
-//           serviceUUID(serviceUUID),
-//           targetDevice(targetDevice) {
-// }
+    sprintf(serviceUUID, "%08ld-%04ld-%04ld-%04ld-%012ld", uuidTag,
+            uuidTag * 2, uuidTag * 3, uuidTag * 4, uuidTag * 5);
 
-// void AdvertisedDeviceCallback::onResult(BLEAdvertisedDevice advertisedDevice) {
-//     if (advertisedDevice.haveServiceUUID() &&
-//         advertisedDevice.isAdvertisingService(serviceUUID)) {
-//         BLEDevice::getScan()->stop();
-//         targetDevice = new BLEAdvertisedDevice(advertisedDevice);
-//         shouldConnect = true;
-//         shouldScan = true;
-//     }
-// }
+    uuidTag *= 4;
+    uuidTag = uuidTag % 2000;
 
-// BLE_CONTROLLER::BLE_CONTROLLER(const char* deviceName) {
-//     this->deviceName = deviceName;
-// }
+    sprintf(characteristicUUID, "%08ld-%04ld-%04ld-%04ld-%012ld", uuidTag,
+            uuidTag * 2, uuidTag * 3, uuidTag * 4, uuidTag * 5);
 
-// void BLE_CONTROLLER::init(void) {
-//     BLEDevice::init(deviceName);
-//     BLEScan* scan = BLEDevice::getScan();
-//     scan->setAdvertisedDeviceCallbacks(new AdvertisedDeviceCallback(
-//         shouldConnect, shouldScan, serviceUUID, targetDevice));
-//     scan->setInterval(1349);
-//     scan->setWindow(449);
-//     scan->setActiveScan(true);
-//     scan->start(5, false);
-// }
+    this->_serviceUUID = BLEUUID(serviceUUID);
+    this->_characteristicUUID = BLEUUID(characteristicUUID);
+}
 
-// bool BLE_CONTROLLER::checkConnection(void) {
-//     if (shouldConnect == true) {
-//         connectToServer();
-//         shouldConnect = false;
-//     }
+void BLE_Controller::init(void) {
+    BLEDevice::init(_deviceName);
+    BLEScan* scan = BLEDevice::getScan();
 
-//     if (isConnected) {
-//         return true;
-//     } else {
-//         if (shouldScan) {
-//             BLEDevice::getScan()->start(0);
-//         }
-//         return false;
-//     }
-// }
+    scan->setAdvertisedDeviceCallbacks(new AdvertisedDeviceCallback(
+        _shouldConnect, _shouldScan, _serviceUUID, _targetDevice));
+    scan->setInterval(1349);
+    scan->setWindow(449);
+    scan->setActiveScan(true);
+    scan->start(5, false);
+}
 
-// void BLE_CONTROLLER::write(uint8_t* sendDataArr, size_t dataSize) {
-//     remoteCharacteristic->writeValue(sendDataArr, dataSize);
-//     remoteCharacteristic->registerForNotify(onNotificationReceived);
-// }
+bool BLE_Controller::checkConnection(void) {
+    if (_shouldConnect == true) {
+        connectToServer();
+        _shouldConnect = false;
+    }
 
-// void BLE_CONTROLLER::onNotificationReceived(
-//     BLERemoteCharacteristic* remoteCharacteristic, uint8_t* data, size_t length,
-//     bool isNotify) {
-//     Serial.println((char*)data);
-// }
+    if (_isConnected) {
+        return true;
+    } else {
+        if (_shouldScan) {
+            BLEDevice::getScan()->start(0);
+        }
+        return false;
+    }
+}
 
-// bool BLE_CONTROLLER::connectToServer() {
-//     BLEClient* client = BLEDevice::createClient();
+void BLE_Controller::write(uint8_t* sendDataArr, size_t dataSize) {
+    _remoteCharacteristic->writeValue(sendDataArr, dataSize);
+    _remoteCharacteristic->registerForNotify(onNotificationReceived);
+}
 
-//     client->setClientCallbacks(new ClientCallback(isConnected));
-//     client->connect(targetDevice);
-//     client->setMTU(517);
+void BLE_Controller::onNotificationReceived(
+    BLERemoteCharacteristic* remoteCharacteristic, uint8_t* data, size_t length,
+    bool isNotify) {
+    Serial.println((char*)data);
+}
 
-//     BLERemoteService* remoteService = client->getService(serviceUUID);
-//     if (remoteService == nullptr) {
-//         client->disconnect();
-//         return false;
-//     }
+bool BLE_Controller::connectToServer() {
+    BLEClient* client = BLEDevice::createClient();
 
-//     remoteCharacteristic = remoteService->getCharacteristic(charUUID);
-//     if (remoteCharacteristic == nullptr) {
-//         client->disconnect();
-//         return false;
-//     }
+    client->setClientCallbacks(new ClientCallback(_isConnected));
+    client->connect(_targetDevice);
+    client->setMTU(517);
 
-//     if (remoteCharacteristic->canRead()) {
-//         std::string value = remoteCharacteristic->readValue();
-//     }
+    BLERemoteService* remoteService = client->getService(_serviceUUID);
+    if (remoteService == nullptr) {
+        client->disconnect();
+        return false;
+    }
 
-//     if (remoteCharacteristic->canNotify())
-//         remoteCharacteristic->registerForNotify(onNotificationReceived);
+    _remoteCharacteristic = remoteService->getCharacteristic(_characteristicUUID);
+    if (_remoteCharacteristic == nullptr) {
+        client->disconnect();
+        return false;
+    }
 
-//     isConnected = true;
-//     return true;
-// }
+    if (_remoteCharacteristic->canRead()) {
+        std::string value = _remoteCharacteristic->readValue();
+    }
+
+    if (_remoteCharacteristic->canNotify())
+        _remoteCharacteristic->registerForNotify(onNotificationReceived);
+
+    _isConnected = true;
+    return true;
+}
+
+BLE_Controller::ClientCallback::ClientCallback(bool& isConnected)
+    : _isConnected(isConnected) {
+}
+
+void BLE_Controller::ClientCallback::onConnect(BLEClient* client) {
+}
+
+void BLE_Controller::ClientCallback::onDisconnect(BLEClient* client) {
+    _isConnected = false;
+}
+
+BLE_Controller::AdvertisedDeviceCallback::AdvertisedDeviceCallback(
+    bool& shouldConnect, bool& shouldScan, BLEUUID& serviceUUID,
+    BLEAdvertisedDevice*& targetDevice)
+    : _shouldConnect(shouldConnect),
+      _shouldScan(shouldScan),
+      _serviceUUID(serviceUUID),
+      _targetDevice(targetDevice) {
+}
+
+void BLE_Controller::AdvertisedDeviceCallback::onResult(
+    BLEAdvertisedDevice advertisedDevice) {
+    if (advertisedDevice.haveServiceUUID() &&
+        advertisedDevice.isAdvertisingService(_serviceUUID)) {
+        BLEDevice::getScan()->stop();
+        _targetDevice = new BLEAdvertisedDevice(advertisedDevice);
+        _shouldConnect = true;
+        _shouldScan = true;
+    }
+}

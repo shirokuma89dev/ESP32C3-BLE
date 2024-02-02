@@ -32,24 +32,24 @@ void BLE_PERIPHERAL::init() {
     // Create the BLE Device
     BLEDevice::init(_deviceName);
     if (_isDebugMode) {
-        Serial.println("BLE Device created");
-        Serial.print("Device name: ");
-        Serial.println(_deviceName);
+        Serial0.println("BLE Device created");
+        Serial0.print("Device name: ");
+        Serial0.println(_deviceName);
     }
 
     // Create the BLE Server
     _pServer = BLEDevice::createServer();
     _pServer->setCallbacks(new MyServerCallbacks(this));
     if (_isDebugMode) {
-        Serial.println("BLE Server created");
+        Serial0.println("BLE Server created");
     }
 
     // Create the BLE Service
     BLEService* pService = _pServer->createService(_serviceUuid);
     if (_isDebugMode) {
-        Serial.println("BLE Service created");
-        Serial.print("Service UUID: ");
-        Serial.println(_serviceUuid);
+        Serial0.println("BLE Service created");
+        Serial0.print("Service UUID: ");
+        Serial0.println(_serviceUuid);
     }
 
     _pCharacteristic = pService->createCharacteristic(
@@ -58,30 +58,30 @@ void BLE_PERIPHERAL::init() {
                                  BLECharacteristic::PROPERTY_NOTIFY |
                                  BLECharacteristic::PROPERTY_INDICATE);
     if (_isDebugMode) {
-        Serial.println("BLE Characteristic created");
-        Serial.print("Characteristic UUID: ");
-        Serial.println(_characteristicUuid);
+        Serial0.println("BLE Characteristic created");
+        Serial0.print("Characteristic UUID: ");
+        Serial0.println(_characteristicUuid);
     }
 
     _pCharacteristic->addDescriptor(new BLE2902());
     if (_isDebugMode) {
-        Serial.println("Descriptor added to the characteristic");
+        Serial0.println("Descriptor added to the characteristic");
     }
 
     _pCharacteristic->setCallbacks(new MyCallbacks(this));
     if (_isDebugMode) {
-        Serial.println("Callbacks set for the characteristic");
+        Serial0.println("Callbacks set for the characteristic");
     }
 
     pService->start();
     if (_isDebugMode) {
-        Serial.println("Service started");
+        Serial0.println("Service started");
     }
 
     BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
     pAdvertising->addServiceUUID(_serviceUuid);
     if (_isDebugMode) {
-        Serial.println("Service UUID added to the advertising");
+        Serial0.println("Service UUID added to the advertising");
     }
 
     pAdvertising->setScanResponse(false);
@@ -90,12 +90,12 @@ void BLE_PERIPHERAL::init() {
     pAdvertising->setMinPreferred(0x06);
     pAdvertising->setMinPreferred(0x12);
     if (_isDebugMode) {
-        Serial.println("Advertising settings updated");
+        Serial0.println("Advertising settings updated");
     }
 
     BLEDevice::startAdvertising();
     if (_isDebugMode) {
-        Serial.println("Advertising started");
+        Serial0.println("Advertising started");
     }
 }
 
@@ -109,14 +109,14 @@ bool BLE_PERIPHERAL::checkConnection() {
         _wasDeviceConnected = _isDeviceConnected;
 
         if (_isDebugMode) {
-            Serial.println("Waiting a client connection to notify...");
+            Serial0.println("Waiting a client connection to notify...");
         }
     }
     if (_isDeviceConnected && !_wasDeviceConnected) {
         _wasDeviceConnected = _isDeviceConnected;
 
         if (_isDebugMode) {
-            Serial.println("Connected");
+            Serial0.println("Connected");
         }
     }
 
