@@ -8,10 +8,12 @@ class BLE_Controller {
    public:
     BLE_Controller(const char* deviceName, const char* peripheralName);
 
+    void enableDebugMode(void);
+
     void init(void);
     bool checkConnection(void);
 
-    void write(uint8_t* sendDataArr, size_t dataSize);
+    void write(char* sendDataArr, size_t dataSize);
 
     int available(void);
     char read(void);
@@ -23,6 +25,8 @@ class BLE_Controller {
     bool _shouldConnect = false;
     bool _isConnected = false;
     bool _shouldScan = false;
+
+    bool _isDebugModeEnabled = false;
 
     BLEUUID _serviceUUID;
     BLEUUID _characteristicUUID;

@@ -10,16 +10,47 @@ BLE_Controller::BLE_Controller(const char* deviceName,
     _uuidGenerate(peripheralName);
 }
 
+void BLE_Controller::enableDebugMode(void) {
+    _isDebugModeEnabled = true;
+}
+
 void BLE_Controller::init(void) {
     BLEDevice::init(_deviceName);
+    if (_isDebugModeEnabled) {
+        Serial.println("BLE Device initialized");
+        Serial.print("Device name: ");
+        Serial.println(_deviceName);
+    }
+
+    if (_isDebugModeEnabled) {
+        Serial.print("Service UUID: ");
+        Serial.println(_serviceUUID.toString().c_str());
+        Serial.print("Characteristic UUID: ");
+        Serial.println(_characteristicUUID.toString().c_str());
+    }
+
     BLEScan* scan = BLEDevice::getScan();
+    if (_isDebugModeEnabled) {
+        Serial.println("BLE Scan created");
+    }
 
     scan->setAdvertisedDeviceCallbacks(new AdvertisedDeviceCallback(
         _shouldConnect, _shouldScan, _serviceUUID, _targetDevice));
+    if (_isDebugModeEnabled) {
+        Serial.println("Advertised Device Callbacks set");
+    }
+
     scan->setInterval(1349);
     scan->setWindow(449);
     scan->setActiveScan(true);
+    if (_isDebugModeEnabled) {
+        Serial.println("Scan parameters set");
+    }
+
     scan->start(5, false);
+    if (_isDebugModeEnabled) {
+        Serial.println("Scan started");
+    }
 }
 
 bool BLE_Controller::checkConnection(void) {
@@ -38,7 +69,7 @@ bool BLE_Controller::checkConnection(void) {
     }
 }
 
-void BLE_Controller::write(uint8_t* sendDataArr, size_t dataSize) {
+void BLE_Controller::write(char* sendDataArr, size_t dataSize) {
     _remoteCharacteristic->writeValue(sendDataArr, dataSize);
     _remoteCharacteristic->registerForNotify(_onNotificationReceived);
 }

@@ -1,6 +1,6 @@
-#include "BLE_Peripheral.h"
+#include "./BLE_Peripheral.h"
 
-BLE_PERIPHERAL::BLE_PERIPHERAL(const char* deviceName)
+BLE_Peripheral::BLE_Peripheral(const char* deviceName)
     : _isDeviceConnected(false),
       _wasDeviceConnected(false),
       _pServer(NULL),
@@ -10,7 +10,7 @@ BLE_PERIPHERAL::BLE_PERIPHERAL(const char* deviceName)
     uuidGenerate(deviceName);
 }
 
-void BLE_PERIPHERAL::uuidGenerate(const char* tag) {
+void BLE_Peripheral::uuidGenerate(const char* tag) {
     // tagから適当にUUIDらしきものを生成する
     unsigned long uuidTag = 0;
     for (int i = 0; i < strlen(tag); i++) {
@@ -28,28 +28,28 @@ void BLE_PERIPHERAL::uuidGenerate(const char* tag) {
             uuidTag * 2, uuidTag * 3, uuidTag * 4, uuidTag * 5);
 }
 
-void BLE_PERIPHERAL::init() {
+void BLE_Peripheral::init() {
     // Create the BLE Device
     BLEDevice::init(_deviceName);
-    if (_isDebugMode) {
-        Serial0.println("BLE Device created");
-        Serial0.print("Device name: ");
-        Serial0.println(_deviceName);
+    if (_isDebugModeEnabled) {
+        Serial.println("BLE Device created");
+        Serial.print("Device name: ");
+        Serial.println(_deviceName);
     }
 
     // Create the BLE Server
     _pServer = BLEDevice::createServer();
     _pServer->setCallbacks(new MyServerCallbacks(this));
-    if (_isDebugMode) {
-        Serial0.println("BLE Server created");
+    if (_isDebugModeEnabled) {
+        Serial.println("BLE Server created");
     }
 
     // Create the BLE Service
     BLEService* pService = _pServer->createService(_serviceUuid);
-    if (_isDebugMode) {
-        Serial0.println("BLE Service created");
-        Serial0.print("Service UUID: ");
-        Serial0.println(_serviceUuid);
+    if (_isDebugModeEnabled) {
+        Serial.println("BLE Service created");
+        Serial.print("Service UUID: ");
+        Serial.println(_serviceUuid);
     }
 
     _pCharacteristic = pService->createCharacteristic(
@@ -57,31 +57,31 @@ void BLE_PERIPHERAL::init() {
                                  BLECharacteristic::PROPERTY_WRITE |
                                  BLECharacteristic::PROPERTY_NOTIFY |
                                  BLECharacteristic::PROPERTY_INDICATE);
-    if (_isDebugMode) {
-        Serial0.println("BLE Characteristic created");
-        Serial0.print("Characteristic UUID: ");
-        Serial0.println(_characteristicUuid);
+    if (_isDebugModeEnabled) {
+        Serial.println("BLE Characteristic created");
+        Serial.print("Characteristic UUID: ");
+        Serial.println(_characteristicUuid);
     }
 
     _pCharacteristic->addDescriptor(new BLE2902());
-    if (_isDebugMode) {
-        Serial0.println("Descriptor added to the characteristic");
+    if (_isDebugModeEnabled) {
+        Serial.println("Descriptor added to the characteristic");
     }
 
     _pCharacteristic->setCallbacks(new MyCallbacks(this));
-    if (_isDebugMode) {
-        Serial0.println("Callbacks set for the characteristic");
+    if (_isDebugModeEnabled) {
+        Serial.println("Callbacks set for the characteristic");
     }
 
     pService->start();
-    if (_isDebugMode) {
-        Serial0.println("Service started");
+    if (_isDebugModeEnabled) {
+        Serial.println("Service started");
     }
 
     BLEAdvertising* pAdvertising = BLEDevice::getAdvertising();
     pAdvertising->addServiceUUID(_serviceUuid);
-    if (_isDebugMode) {
-        Serial0.println("Service UUID added to the advertising");
+    if (_isDebugModeEnabled) {
+        Serial.println("Service UUID added to the advertising");
     }
 
     pAdvertising->setScanResponse(false);
@@ -89,73 +89,73 @@ void BLE_PERIPHERAL::init() {
     pAdvertising->setScanResponse(true);
     pAdvertising->setMinPreferred(0x06);
     pAdvertising->setMinPreferred(0x12);
-    if (_isDebugMode) {
-        Serial0.println("Advertising settings updated");
+    if (_isDebugModeEnabled) {
+        Serial.println("Advertising settings updated");
     }
 
     BLEDevice::startAdvertising();
-    if (_isDebugMode) {
-        Serial0.println("Advertising started");
+    if (_isDebugModeEnabled) {
+        Serial.println("Advertising started");
     }
 }
 
-void BLE_PERIPHERAL::enableDebugMode() {
-    _isDebugMode = true;
+void BLE_Peripheral::enableDebugMode() {
+    _isDebugModeEnabled = true;
 }
 
-bool BLE_PERIPHERAL::checkConnection() {
+bool BLE_Peripheral::checkConnection() {
     if (!_isDeviceConnected && _wasDeviceConnected) {
         _pServer->startAdvertising();
         _wasDeviceConnected = _isDeviceConnected;
 
-        if (_isDebugMode) {
-            Serial0.println("Waiting a client connection to notify...");
+        if (_isDebugModeEnabled) {
+            Serial.println("Waiting a client connection to notify...");
         }
     }
     if (_isDeviceConnected && !_wasDeviceConnected) {
         _wasDeviceConnected = _isDeviceConnected;
 
-        if (_isDebugMode) {
-            Serial0.println("Connected");
+        if (_isDebugModeEnabled) {
+            Serial.println("Connected");
         }
     }
 
     return _isDeviceConnected;
 }
 
-int BLE_PERIPHERAL::available() {
+int BLE_Peripheral::available() {
     int length = _rxValue.length();
     return length;
 }
 
-char BLE_PERIPHERAL::read() {
+char BLE_Peripheral::read() {
     char data = _rxValue[0];
     _rxValue = _rxValue.substr(1);
 
     return data;
 }
 
-void BLE_PERIPHERAL::write(char* data, size_t length) {
+void BLE_Peripheral::write(char* data, size_t length) {
     _pCharacteristic->setValue((uint8_t*)data, length);
     _pCharacteristic->notify();
 }
 
-BLE_PERIPHERAL::MyServerCallbacks::MyServerCallbacks(BLE_PERIPHERAL* peripheral)
+BLE_Peripheral::MyServerCallbacks::MyServerCallbacks(BLE_Peripheral* peripheral)
     : peripheral(peripheral) {
 }
 
-void BLE_PERIPHERAL::MyServerCallbacks::onConnect(BLEServer* pServer) {
+void BLE_Peripheral::MyServerCallbacks::onConnect(BLEServer* pServer) {
     peripheral->_isDeviceConnected = true;
 }
 
-void BLE_PERIPHERAL::MyServerCallbacks::onDisconnect(BLEServer* pServer) {
+void BLE_Peripheral::MyServerCallbacks::onDisconnect(BLEServer* pServer) {
     peripheral->_isDeviceConnected = false;
 }
 
-BLE_PERIPHERAL::MyCallbacks::MyCallbacks(BLE_PERIPHERAL* peripheral)
+BLE_Peripheral::MyCallbacks::MyCallbacks(BLE_Peripheral* peripheral)
     : peripheral(peripheral) {
 }
 
-void BLE_PERIPHERAL::MyCallbacks::onWrite(BLECharacteristic* pCharacteristic) {
+void BLE_Peripheral::MyCallbacks::onWrite(BLECharacteristic* pCharacteristic) {
     peripheral->_rxValue = pCharacteristic->getValue();
 }

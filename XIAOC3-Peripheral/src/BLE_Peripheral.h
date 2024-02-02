@@ -1,5 +1,5 @@
-#ifndef _BLE_PERIPHERAL_H_
-#define _BLE_PERIPHERAL_H_
+#ifndef _BLE_Peripheral_H_
+#define _BLE_Peripheral_H_
 
 #include <BLEDevice.h>
 #include <BLEServer.h>
@@ -8,9 +8,9 @@
 
 #include <Arduino.h>
 
-class BLE_PERIPHERAL {
+class BLE_Peripheral {
    public:
-    BLE_PERIPHERAL(const char* deviceName);
+    BLE_Peripheral(const char* deviceName);
 
     void init();
     void enableDebugMode();
@@ -23,37 +23,35 @@ class BLE_PERIPHERAL {
     void uuidGenerate(const char* tag);
 
    private:
-    // デバイスの接続状態
     bool _isDeviceConnected;
     bool _wasDeviceConnected;
-    bool _isDebugMode;
+
+    bool _isDebugModeEnabled;
 
     char _serviceUuid[38];
     char _characteristicUuid[38];
     const char* _deviceName;
 
-    // BLEサーバー
     BLEServer* _pServer;
-
-    // BLE特性
     BLECharacteristic* _pCharacteristic;
 
     // 受信データ
     std::string _rxValue;
+    
     class MyServerCallbacks : public BLEServerCallbacks {
-        BLE_PERIPHERAL* peripheral;
+        BLE_Peripheral* peripheral;
 
        public:
-        MyServerCallbacks(BLE_PERIPHERAL* peripheral);
+        MyServerCallbacks(BLE_Peripheral* peripheral);
         void onConnect(BLEServer* pServer);
         void onDisconnect(BLEServer* pServer);
     };
 
     class MyCallbacks : public BLECharacteristicCallbacks {
-        BLE_PERIPHERAL* peripheral;
+        BLE_Peripheral* peripheral;
 
        public:
-        MyCallbacks(BLE_PERIPHERAL* peripheral);
+        MyCallbacks(BLE_Peripheral* peripheral);
         void onWrite(BLECharacteristic* pCharacteristic);
     };
 };

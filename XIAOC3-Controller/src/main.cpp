@@ -1,11 +1,15 @@
 #include <Arduino.h>
+
 #include "./BLE_Controller.h"
 
-BLE_Controller ble("XIAOC3 Controller", "BLE_Kit-A");
+BLE_Controller ble("BLE_Kit Controller", "BLE_Kit-A");
 
 void setup() {
     Serial.begin(115200);
 
+    delay(2000);
+
+    ble.enableDebugMode();
     ble.init();
 }
 
@@ -13,10 +17,9 @@ void loop() {
     if (ble.checkConnection()) {
         if (Serial.available() != 0) {
             int dataSize = 0;
-            uint8_t sendDataArr[140] = {0};
+            char sendDataArr[140] = {0};
             while (Serial.available() != 0) {
-                uint8_t data = Serial.read();
-                sendDataArr[dataSize] = data;
+                sendDataArr[dataSize] = Serial.read();
                 dataSize++;
             }
 
@@ -30,6 +33,7 @@ void loop() {
                 dataArr[i] = ble.read();
             }
             Serial.write(dataArr, length);
+            Serial.write("\n");
         }
     }
 }

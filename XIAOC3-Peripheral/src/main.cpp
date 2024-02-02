@@ -2,43 +2,38 @@
 
 #include "./BLE_Peripheral.h"
 
-BLE_PERIPHERAL BLE_Peripheral("BLE_Kit-A");
-
-// const int hash = "XIAOC3 PeripheralA";
+BLE_Peripheral ble("BLE_Kit-A");
 
 void setup() {
-    delay(1000);
+    Serial.begin(115200);
 
-    Serial0.begin(115200);
-    BLE_Peripheral.enableDebugMode();
-    BLE_Peripheral.init();
+    delay(2000);
+
+    ble.enableDebugMode();
+    ble.init();
 }
 
 void loop() {
-    if (BLE_Peripheral.checkConnection()) {
-        // if (Serial.available() != 0) {
-        //     int dataSize = 0;
-        //     char sendDataArr[140] = {0};
-        //     while (Serial.available() != 0) {
-        //         sendDataArr[dataSize] = Serial.read();
-        //         dataSize++;
-        //     }
+    if (ble.checkConnection()) {
+        if (Serial.available() != 0) {
+            int dataSize = 0;
+            char sendDataArr[140] = {0};
+            while (Serial.available() != 0) {
+                sendDataArr[dataSize] = Serial.read();
+                dataSize++;
+            }
 
-        //     BLE_Peripheral.write(sendDataArr, dataSize);
-        // }
-        static unsigned long flagTimer = millis();
-        if (millis() - flagTimer > 1000) {
-            char sendDataArr[] = "オーレオレマツケンサンバ〜！";
-            int dataSize = sizeof(sendDataArr) / sizeof(sendDataArr[0]);
-
-            BLE_Peripheral.write(sendDataArr, dataSize);
-
-            flagTimer = millis();
+            ble.write(sendDataArr, dataSize);
         }
 
-        while (BLE_Peripheral.available() != 0) {
-            char data = BLE_Peripheral.read();
-            Serial.write(data);
+        while (ble.available() != 0) {
+            int length = ble.available();
+            char dataArr[length] = {0};
+            for (int i = 0; i < length; i++) {
+                dataArr[i] = ble.read();
+            }
+            Serial.write(dataArr, length);
+            Serial.write("\n");
         }
     }
 }
