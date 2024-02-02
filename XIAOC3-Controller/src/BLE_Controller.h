@@ -1,5 +1,5 @@
-#ifndef BLE_Controller_H
-#define BLE_Controller_H
+#ifndef _BLE_CONTROLLER_H_
+#define _BLE_CONTROLLER_H_
 
 #include <Arduino.h>
 #include <BLEDevice.h>
@@ -13,6 +13,9 @@ class BLE_Controller {
 
     void write(uint8_t* sendDataArr, size_t dataSize);
 
+    int available(void);
+    char read(void);
+
    private:
     const char* _deviceName;
     const char* _peripheralName;
@@ -24,14 +27,16 @@ class BLE_Controller {
     BLEUUID _serviceUUID;
     BLEUUID _characteristicUUID;
 
+    static std::string _rxValue;
+
     BLERemoteCharacteristic* _remoteCharacteristic = nullptr;
     BLECharacteristic* _localCharacteristic = nullptr;
     BLEAdvertisedDevice* _targetDevice = nullptr;
 
-    void uuidGenerate(const char* tag);
-    bool connectToServer();
+    void _uuidGenerate(const char* tag);
+    bool _connectToServer();
 
-    static void onNotificationReceived(
+    static void _onNotificationReceived(
         BLERemoteCharacteristic* remoteCharacteristic, uint8_t* data,
         size_t length, bool isNotify);
 

@@ -22,5 +22,14 @@ void loop() {
 
             ble.write(sendDataArr, dataSize);
         }
+
+        while (ble.available() != 0) {
+            int length = ble.available();
+            char dataArr[length] = {0};
+            for (int i = 0; i < length; i++) {
+                dataArr[i] = ble.read();
+            }
+            Serial.write(dataArr, length);
+        }
     }
 }
