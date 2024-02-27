@@ -2,48 +2,81 @@
 
 #include "./BLE_Controller.h"
 
-BLE_Controller ble("BLE_Kit Controller", "BLE_Kit-A");
+BLE_Controller ble("BLE_Kit Central", "BLE_Kit-A");
 
-#include <Adafruit_NeoPixel.h>
-#define PIN 20
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(1, PIN, NEO_GRB + NEO_KHZ800);
+#include "./led.h"
+Led leds;
+
+#include "./parking.h"
+Parking parking;
+
+void readSerialData(void) {
+    if (Serial.available() != 0) {
+        char receivedData = Serial.read();
+        char id = receivedData - 'A';
+
+        if (id < 0 || id > 3) {
+            Serial.println("Invalid Parking ID");
+            return;
+        }
+
+        if (parking.status[id] != Parking::Available) {
+            Serial.print("Parking ");
+            Serial.write(id + 'A');
+            Serial.print(" is ");
+
+            if (parking.status[id] == Parking::Occupied) {
+                Serial.println("Occupied");
+            } else {
+                Serial.println("Reserved");
+            }
+            return;
+        }
+
+        parking.status[id] = Parking::Reserved;
+        parking.isApproaching = true;
+        parking.approachingParkingId = id;
+
+        Serial.print("Parking ");
+        Serial.write(id + 'A');
+        Serial.println(" is Available!");
+    }
+}
 
 void setup() {
     Serial.begin(115200);
-
-    delay(2000);
+    leds.init();
 
     ble.enableDebugMode();
     ble.init();
 
-    strip.begin();
-    strip.setBrightness(50);
-    strip.setPixelColor(0, strip.Color(255, 0, 0));
-    strip.show();
+    Serial.println("BLE Central is ready!");
 }
 
 void loop() {
+    readSerialData();
 
-    // if (ble.checkConnection()) {
-    //     if (Serial.available() != 0) {
-    //         int dataSize = 0;
-    //         char sendDataArr[140] = {0};
-    //         while (Serial.available() != 0) {
-    //             sendDataArr[dataSize] = Serial.read();
-    //             dataSize++;
-    //         }
+    if (leds.setBLE_Status(ble.checkConnection())) {
+        while (ble.available() != 0) {
+            if (ble.read() != 'O') {
+                continue;
+            }
 
-    //         ble.write(sendDataArr, dataSize);
-    //     }
+            parking.status[parking.approachingParkingId] = Parking::Occupied;
+            parking.isApproaching = false;
 
-    //     while (ble.available() != 0) {
-    //         int length = ble.available();
-    //         char dataArr[length] = {0};
-    //         for (int i = 0; i < length; i++) {
-    //             dataArr[i] = ble.read();
-    //         }
-    //         Serial.write(dataArr, length);
-    //         Serial.write("\n");
-    //     }
-    // }
+            Serial.print("Parking ");
+            Serial.write(parking.approachingParkingId + 'A');
+            Serial.println(" is Occupied!");
+
+            while (ble.available() != 0) {
+                ble.read();
+            }
+
+            break;
+        }
+    }
+
+    leds.setParkingStatus(parking.status);
+    leds.show();
 }
